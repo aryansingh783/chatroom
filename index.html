@@ -1,0 +1,190 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dark Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #111827;
+      color: #f3f4f6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h2 {
+      margin: 20px 0 10px;
+    }
+
+    .chat-container {
+      background: #1f2937;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 20px;
+    }
+
+    #chat {
+      background: #374151;
+      border-radius: 8px;
+      padding: 10px;
+      height: 300px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+
+    #typing {
+      font-size: 13px;
+      color: #9ca3af;
+      height: 16px;
+      margin: 4px 0;
+    }
+
+    #msg {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 16px;
+      background: #4b5563;
+      color: #f9fafb;
+      border: none;
+      outline: none;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      background-color: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+
+    @media (max-width: 600px) {
+      .chat-container {
+        width: 95%;
+      }
+
+      #chat {
+        height: 250px;
+      }
+
+      button {
+        font-size: 14px;
+        padding: 8px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>💬 Dark Chat</h2>
+  <div class="chat-container">
+    <div id="chat"></div>
+    <div id="typing"></div>
+    <div class="input-group">
+      <input id="msg" placeholder="Type a message..." autocomplete="off" />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+  <button onclick="changeNickname()">Change Name</button>
+  <script>
+  const socket = io("https://abc123.ngrok.io"); // 👈 replace with your ngrok URL
+  let nickname = localStorage.getItem('nickname') || '';
+  let password = localStorage.getItem('chat_password') || '';
+  const input = document.getElementById('msg');
+  const chat = document.getElementById('chat');
+  const typingDiv = document.getElementById('typing');
+
+  if (!nickname) {
+    nickname = prompt("Enter your nickname:");
+    if (nickname) {
+      localStorage.setItem('nickname', nickname);
+    }
+  }
+
+  function authenticate() {
+    if (!password) {
+      password = prompt("Enter chat password:");
+      if (password) {
+        localStorage.setItem('chat_password', password);
+      }
+    }
+
+    socket.emit("auth", { password, nickname });
+
+    socket.on("auth_error", msg => {
+      alert(msg);
+      localStorage.removeItem('chat_password'); // reset invalid password
+      password = '';
+      authenticate();  // retry
+    });
+  }
+
+  authenticate();
+
+  socket.on('message', msg => {
+    const div = document.createElement('div');
+    div.textContent = msg;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  });
+
+  socket.on('typing', name => {
+    if (name !== nickname) {
+      typingDiv.textContent = `${name} is typing...`;
+      clearTimeout(typingDiv.timeout);
+      typingDiv.timeout = setTimeout(() => typingDiv.textContent = '', 2000);
+    }
+  });
+
+  function sendMessage() {
+    const text = input.value.trim();
+    if (text) {
+      socket.send(text);
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  function changeNickname() {
+    const newNick = prompt("Enter your new nickname:");
+    if (newNick && newNick !== nickname) {
+      localStorage.setItem('nickname', newNick);
+      nickname = newNick;
+      socket.emit('auth', { password, nickname }); // re-authenticate
+    }
+  }
+
+  input.addEventListener('input', () => {
+    socket.emit('typing', nickname);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendMessage();
+  });
+  </script>  
+  
+</body>
+</html>
