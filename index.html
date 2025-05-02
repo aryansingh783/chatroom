@@ -1,190 +1,85 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Chat Room</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
-  <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
+  <meta charset="UTF-8">
+  <title>💬 Dark Chat Entry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
+    * {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #111827;
-      color: #f3f4f6;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0f172a;
+      height: 100vh;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+      background: #1e293b;
+      padding: 30px 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
     }
 
     h2 {
-      margin: 20px 0 10px;
-    }
-
-    .chat-container {
-      background: #1f2937;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 500px;
-      padding: 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-      display: flex;
-      flex-direction: column;
+      color: #f8fafc;
       margin-bottom: 20px;
+      font-size: 24px;
     }
 
-    #chat {
-      background: #374151;
-      border-radius: 8px;
-      padding: 10px;
-      height: 300px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-      font-size: 15px;
-    }
-
-    #typing {
-      font-size: 13px;
-      color: #9ca3af;
-      height: 16px;
-      margin: 4px 0;
-    }
-
-    #msg {
-      flex: 1;
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 16px;
-      background: #4b5563;
-      color: #f9fafb;
+    .btn {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
       border: none;
-      outline: none;
-    }
-
-    .input-group {
-      display: flex;
-      gap: 8px;
-    }
-
-    button {
-      background-color: #2563eb;
+      padding: 14px 24px;
+      font-size: 16px;
+      border-radius: 12px;
       color: white;
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
       cursor: pointer;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
     }
 
-    button:hover {
-      background-color: #1d4ed8;
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6);
     }
 
-    @media (max-width: 600px) {
-      .chat-container {
-        width: 95%;
+    @media (max-width: 500px) {
+      h2 {
+        font-size: 20px;
       }
 
-      #chat {
-        height: 250px;
+      .btn {
+        font-size: 15px;
+        padding: 12px 20px;
       }
 
-      button {
-        font-size: 14px;
-        padding: 8px 12px;
+      .container {
+        padding: 24px 16px;
       }
     }
   </style>
 </head>
 <body>
-  <h2>💬 Dark Chat</h2>
-  <div class="chat-container">
-    <div id="chat"></div>
-    <div id="typing"></div>
-    <div class="input-group">
-      <input id="msg" placeholder="Type a message..." autocomplete="off" />
-      <button onclick="sendMessage()">Send</button>
-    </div>
+
+  <div class="container">
+    <h2>💬 Dark Chat</h2>
+    <button class="btn" onclick="window.location.href = ngrokUrl">Join Now</button>
   </div>
-  <button onclick="changeNickname()">Change Name</button>
+
   <script>
-  const socket = io("https://3b0b-106-219-71-96.ngrok-free.app");
-  let nickname = localStorage.getItem('nickname') || '';
-  let password = localStorage.getItem('chat_password') || '';
-  const input = document.getElementById('msg');
-  const chat = document.getElementById('chat');
-  const typingDiv = document.getElementById('typing');
+    // Just update this URL when ngrok link changes
+    const ngrokUrl = "https://your-latest-ngrok-url.ngrok.io";
+  </script>
 
-  if (!nickname) {
-    nickname = prompt("Enter your nickname:");
-    if (nickname) {
-      localStorage.setItem('nickname', nickname);
-    }
-  }
-
-  function authenticate() {
-    if (!password) {
-      password = prompt("Enter chat password:");
-      if (password) {
-        localStorage.setItem('chat_password', password);
-      }
-    }
-
-    socket.emit("auth", { password, nickname });
-
-    socket.on("auth_error", msg => {
-      alert(msg);
-      localStorage.removeItem('chat_password'); // reset invalid password
-      password = '';
-      authenticate();  // retry
-    });
-  }
-
-  authenticate();
-
-  socket.on('message', msg => {
-    const div = document.createElement('div');
-    div.textContent = msg;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-  });
-
-  socket.on('typing', name => {
-    if (name !== nickname) {
-      typingDiv.textContent = `${name} is typing...`;
-      clearTimeout(typingDiv.timeout);
-      typingDiv.timeout = setTimeout(() => typingDiv.textContent = '', 2000);
-    }
-  });
-
-  function sendMessage() {
-    const text = input.value.trim();
-    if (text) {
-      socket.send(text);
-      input.value = '';
-      input.focus();
-    }
-  }
-
-  function changeNickname() {
-    const newNick = prompt("Enter your new nickname:");
-    if (newNick && newNick !== nickname) {
-      localStorage.setItem('nickname', newNick);
-      nickname = newNick;
-      socket.emit('auth', { password, nickname }); // re-authenticate
-    }
-  }
-
-  input.addEventListener('input', () => {
-    socket.emit('typing', nickname);
-  });
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') sendMessage();
-  });
-  </script>  
-  
 </body>
 </html>
